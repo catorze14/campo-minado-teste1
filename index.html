@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minesweeper Premium | Campo Minado</title>
+    <meta name="description" content="Um jogo de Campo Minado moderno, responsivo e elegante feito em Vanilla JS.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="glass-container">
+        <header>
+            <h1>Campo Minado</h1>
+            <div class="game-stats">
+                <div class="stat-item" id="mine-count">
+                    <span class="icon">💣</span>
+                    <span class="value">0</span>
+                </div>
+                <div class="stat-item" id="timer">
+                    <span class="icon">⏱️</span>
+                    <span class="value">00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <select id="difficulty-select">
+                <option value="easy">Iniciante (10 Minas)</option>
+                <option value="medium" selected>Intermediário (40 Minas)</option>
+                <option value="hard">Especialista (99 Minas)</option>
+            </select>
+            <button id="reset-btn">Novo Jogo</button>
+        </div>
+
+        <main id="game-board-container">
+            <div id="game-board"></div>
+        </main>
+
+        <footer>
+            <p>Clique Esquerdo: Revelar | Clique Direito: Bandeira</p>
+        </footer>
+    </div>
+
+    <!-- Modal de Fim de Jogo -->
+    <div id="game-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="modal-title">Fim de Jogo</h2>
+            <p id="modal-text">Você venceu!</p>
+            <button id="modal-btn">Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

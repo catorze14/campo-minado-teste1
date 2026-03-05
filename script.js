@@ -1,249 +1,347 @@
-/**
- * Minesweeper Premium Logic
- * Vanilla JavaScript (ES6+)
- */
-
-const CONFIG = {
-    easy: { rows: 9, cols: 9, mines: 10 },
-    medium: { rows: 16, cols: 16, mines: 40 },
-    hard: { rows: 16, cols: 30, mines: 99 }
+// I. Gerenciador de Estado
+const gameState = {
+    balance: 100,
+    currentBet: 0,
+    difficulty: 'easy',
+    timeLimit: 150,
+    multiplier: 1.15,
+    timer: 0,
+    timerInterval: null,
+    board: [],
+    mines: [],
+    rows: 9,
+    cols: 9,
+    minesCount: 11,
+    cellsRevealed: 0,
+    safeCells: 0,
+    isPlaying: false
 };
 
-class Minesweeper {
-    constructor() {
-        this.board = []; // 2D Array: -1 for mine, 0-8 for numbers
-        this.revealed = []; // Boolean 2D Array
-        this.flags = []; // Boolean 2D Array
-        this.rows = 0;
-        this.cols = 0;
-        this.mineCount = 0;
-        this.flagsUsed = 0;
-        this.gameOver = false;
-        this.firstClick = true;
-        this.timer = null;
-        this.seconds = 0;
-
-        // DOM Elements
-        this.boardElement = document.getElementById('game-board');
-        this.mineDisplay = document.querySelector('#mine-count .value');
-        this.timerDisplay = document.querySelector('#timer .value');
-        this.diffSelect = document.getElementById('difficulty-select');
-        this.resetBtn = document.getElementById('reset-btn');
-        this.modal = document.getElementById('game-modal');
-        this.modalBtn = document.getElementById('modal-btn');
-
-        this.init();
+// Configurações
+const config = {
+    easy: {
+        rows: 9, cols: 9, mines: 11,
+        options: [
+            { time: 150, mult: 1.15, label: "2:30 (1.15x)" },
+            { time: 60, mult: 1.25, label: "1:00 (1.25x)" },
+            { time: 30, mult: 1.50, label: "0:30 (1.50x)" }
+        ]
+    },
+    medium: {
+        rows: 16, cols: 16, mines: 40,
+        options: [
+            { time: 150, mult: 1.35, label: "2:30 (1.35x)" },
+            { time: 90, mult: 1.50, label: "1:30 (1.50x)" },
+            { time: 45, mult: 1.75, label: "0:45 (1.75x)" }
+        ]
+    },
+    hard: {
+        rows: 16, cols: 30, mines: 99,
+        options: [
+            { time: 180, mult: 1.50, label: "3:00 (1.50x)" },
+            { time: 135, mult: 1.75, label: "2:15 (1.75x)" },
+            { time: 90, mult: 2.00, label: "1:30 (2.00x)" }
+        ]
     }
+};
 
-    init() {
-        this.resetBtn.addEventListener('click', () => this.startGame());
-        this.modalBtn.addEventListener('click', () => {
-            this.modal.classList.add('hidden');
-            this.startGame();
-        });
-        this.diffSelect.addEventListener('change', () => this.startGame());
-        
-        this.startGame();
-    }
+// Elementos UI
+const els = {
+    balanceDisplay: document.getElementById('balanceDisplay'),
+    timerDisplay: document.getElementById('timerDisplay'),
+    difficultySelect: document.getElementById('difficultySelect'),
+    timeSelect: document.getElementById('timeSelect'),
+    betInput: document.getElementById('betInput'),
+    startBtn: document.getElementById('startBtn'),
+    boardContainer: document.getElementById('boardContainer'),
+    gameOverlay: document.getElementById('gameOverlay'),
+    resultModal: document.getElementById('resultModal'),
+    modalTitle: document.getElementById('modalTitle'),
+    modalMessage: document.getElementById('modalMessage'),
+    modalBtn: document.getElementById('modalBtn'),
+    gameOverModal: document.getElementById('gameOverModal'),
+    restartBtn: document.getElementById('restartBtn')
+};
 
-    startGame() {
-        const difficulty = this.diffSelect.value;
-        this.rows = CONFIG[difficulty].rows;
-        this.cols = CONFIG[difficulty].cols;
-        this.mineCount = CONFIG[difficulty].mines;
-        
-        this.board = [];
-        this.revealed = [];
-        this.flags = [];
-        this.flagsUsed = 0;
-        this.gameOver = false;
-        this.firstClick = true;
-        this.seconds = 0;
-        this.stopTimer();
+// Utilitários de Atualização Visual
+function updateBalanceDisplay() {
+    els.balanceDisplay.textContent = `$${gameState.balance.toFixed(2)}`;
+}
 
-        this.updateStats();
-        this.createBoard();
-        this.render();
-    }
-
-    createBoard() {
-        for (let r = 0; r < this.rows; r++) {
-            this.board[r] = new Array(this.cols).fill(0);
-            this.revealed[r] = new Array(this.cols).fill(false);
-            this.flags[r] = new Array(this.cols).fill(false);
-        }
-    }
-
-    placeMines(startR, startC) {
-        let placed = 0;
-        while (placed < this.mineCount) {
-            let r = Math.floor(Math.random() * this.rows);
-            let c = Math.floor(Math.random() * this.cols);
-
-            // Evita colocar mina no primeiro clique e onde já tem mina
-            if (this.board[r][c] !== -1 && (Math.abs(r - startR) > 1 || Math.abs(c - startC) > 1)) {
-                this.board[r][c] = -1;
-                placed++;
-            }
-        }
-
-        // Calcula números
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.cols; c++) {
-                if (this.board[r][c] === -1) continue;
-                let count = 0;
-                for (let i = -1; i <= 1; i++) {
-                    for (let j = -1; j <= 1; j++) {
-                        let nr = r + i;
-                        let nc = c + j;
-                        if (nr >= 0 && nr < this.rows && nc >= 0 && nc < this.cols && this.board[nr][nc] === -1) {
-                            count++;
-                        }
-                    }
-                }
-                this.board[r][c] = count;
-            }
-        }
-    }
-
-    render() {
-        this.boardElement.style.gridTemplateColumns = `repeat(${this.cols}, 32px)`;
-        this.boardElement.innerHTML = '';
-
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.cols; c++) {
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.dataset.row = r;
-                cell.dataset.col = c;
-                
-                // Eventos
-                cell.addEventListener('click', (e) => this.handleLeftClick(r, c));
-                cell.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    this.handleRightClick(r, c);
-                });
-
-                this.boardElement.appendChild(cell);
-            }
-        }
-    }
-
-    handleLeftClick(r, c) {
-        if (this.gameOver || this.revealed[r][c] || this.flags[r][c]) return;
-
-        if (this.firstClick) {
-            this.firstClick = false;
-            this.placeMines(r, c);
-            this.startTimer();
-        }
-
-        if (this.board[r][c] === -1) {
-            this.loseGame(r, c);
-            return;
-        }
-
-        this.revealCell(r, c);
-        this.checkWin();
-    }
-
-    handleRightClick(r, c) {
-        if (this.gameOver || this.revealed[r][c]) return;
-
-        this.flags[r][c] = !this.flags[r][c];
-        this.flagsUsed += this.flags[r][c] ? 1 : -1;
-        
-        const cell = this.getCellElement(r, c);
-        cell.classList.toggle('flag');
-        cell.textContent = this.flags[r][c] ? '🚩' : '';
-        
-        this.updateStats();
-    }
-
-    revealCell(r, c) {
-        if (r < 0 || r >= this.rows || c < 0 || c >= this.cols || this.revealed[r][c] || this.flags[r][c]) return;
-
-        this.revealed[r][c] = true;
-        const cellElement = this.getCellElement(r, c);
-        cellElement.classList.add('revealed');
-        
-        const value = this.board[r][c];
-        if (value > 0) {
-            cellElement.textContent = value;
-            cellElement.classList.add(`num-${value}`);
-        } else if (value === 0) {
-            // Revela vizinhos recursivamente
-            for (let i = -1; i <= 1; i++) {
-                for (let j = -1; j <= 1; j++) {
-                    this.revealCell(r + i, c + j);
-                }
-            }
-        }
-    }
-
-    getCellElement(r, c) {
-        return this.boardElement.children[r * this.cols + c];
-    }
-
-    updateStats() {
-        this.mineDisplay.textContent = this.mineCount - this.flagsUsed;
-    }
-
-    startTimer() {
-        this.timer = setInterval(() => {
-            this.seconds++;
-            let mins = Math.floor(this.seconds / 60).toString().padStart(2, '0');
-            let secs = (this.seconds % 60).toString().padStart(2, '0');
-            this.timerDisplay.textContent = `${mins}:${secs}`;
-        }, 1000);
-    }
-
-    stopTimer() {
-        clearInterval(this.timer);
-        this.timerDisplay.textContent = '00:00';
-    }
-
-    loseGame(hitR, hitC) {
-        this.gameOver = true;
-        this.stopTimer();
-
-        // Mostra todas as minas
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.cols; c++) {
-                if (this.board[r][c] === -1) {
-                    const cell = this.getCellElement(r, c);
-                    cell.classList.add('revealed', 'mine');
-                    cell.textContent = '💣';
-                }
-            }
-        }
-
-        this.showModal('Fim de Jogo', 'BOOM! Você atingiu uma mina.');
-    }
-
-    checkWin() {
-        let unrevealedCount = 0;
-        for (let r = 0; r < this.rows; r++) {
-            for (let c = 0; c < this.cols; c++) {
-                if (!this.revealed[r][c]) unrevealedCount++;
-            }
-        }
-
-        if (unrevealedCount === this.mineCount) {
-            this.gameOver = true;
-            this.stopTimer();
-            this.showModal('Vitória!', `Parabéns! Você limpou o campo em ${this.seconds} segundos.`);
-        }
-    }
-
-    showModal(title, text) {
-        document.getElementById('modal-title').textContent = title;
-        document.getElementById('modal-text').textContent = text;
-        this.modal.classList.remove('hidden');
+function checkBankruptcy() {
+    // Checa Game Over Real: apenas se não estiver jogando e o saldo for zero
+    if (gameState.balance <= 0 && !gameState.isPlaying) {
+        els.gameOverModal.classList.add('active');
     }
 }
 
-// Inicia o jogo quando o DOM carregar
-document.addEventListener('DOMContentLoaded', () => {
-    new Minesweeper();
+function updateTimerDisplay() {
+    const mins = Math.floor(gameState.timer / 60).toString().padStart(2, '0');
+    const secs = (gameState.timer % 60).toString().padStart(2, '0');
+    els.timerDisplay.textContent = `${mins}:${secs}`;
+    if (gameState.timer <= 10 && gameState.timer > 0) {
+        els.timerDisplay.style.color = '#ef4444';
+    } else {
+        els.timerDisplay.style.color = '';
+    }
+}
+
+function populateTimeSelect() {
+    const diffInfo = config[els.difficultySelect.value];
+    els.timeSelect.innerHTML = '';
+    diffInfo.options.forEach((opt, idx) => {
+        const option = document.createElement('option');
+        option.value = idx;
+        option.textContent = opt.label;
+        els.timeSelect.appendChild(option);
+    });
+}
+
+// Lógica de Temporizador
+function startTimer() {
+    clearInterval(gameState.timerInterval);
+    updateTimerDisplay();
+    gameState.timerInterval = setInterval(() => {
+        gameState.timer--;
+        updateTimerDisplay();
+
+        if (gameState.timer <= 0) {
+            endGame(false, "O tempo esgotou!");
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    clearInterval(gameState.timerInterval);
+}
+
+// II. Lógica do Campo Minado
+function startNewGame() {
+    const betVal = parseFloat(els.betInput.value);
+
+    // Validações
+    if (isNaN(betVal) || betVal <= 0) {
+        alert("Aposta inválida!");
+        return;
+    }
+    if (betVal > gameState.balance) {
+        alert("Saldo insuficiente!");
+        return;
+    }
+
+    // Deduz Saldo
+    gameState.balance -= betVal;
+    gameState.isPlaying = true; // Set playing to true BEFORE updating UI to avoid state confusion
+    updateBalanceDisplay();
+
+    gameState.currentBet = betVal;
+    gameState.difficulty = els.difficultySelect.value;
+
+    const diffConfig = config[gameState.difficulty];
+    const timeOptIndex = parseInt(els.timeSelect.value);
+    const selectedOption = diffConfig.options[timeOptIndex];
+
+    gameState.timeLimit = selectedOption.time;
+    gameState.multiplier = selectedOption.mult;
+    gameState.rows = diffConfig.rows;
+    gameState.cols = diffConfig.cols;
+    gameState.minesCount = diffConfig.mines;
+
+    gameState.timer = gameState.timeLimit;
+    gameState.cellsRevealed = 0;
+    gameState.safeCells = (gameState.rows * gameState.cols) - gameState.minesCount;
+
+    // UI Updates
+    els.gameOverlay.classList.remove('active');
+    els.resultModal.classList.remove('active');
+
+    setupBoard();
+    startTimer();
+}
+
+function setupBoard() {
+    gameState.board = [];
+    gameState.mines = [];
+    els.boardContainer.innerHTML = '';
+    els.boardContainer.style.gridTemplateColumns = `repeat(${gameState.cols}, 32px)`;
+    els.boardContainer.style.gridTemplateRows = `repeat(${gameState.rows}, 32px)`;
+
+    for (let r = 0; r < gameState.rows; r++) {
+        const row = [];
+        for (let c = 0; c < gameState.cols; c++) {
+            row.push({
+                r, c,
+                isMine: false,
+                isRevealed: false,
+                isFlagged: false,
+                adjacentMines: 0,
+                element: null
+            });
+        }
+        gameState.board.push(row);
+    }
+
+    // Place mines (random, independent of first click right now for simplicity)
+    let minesPlaced = 0;
+    while (minesPlaced < gameState.minesCount) {
+        const r = Math.floor(Math.random() * gameState.rows);
+        const c = Math.floor(Math.random() * gameState.cols);
+        if (!gameState.board[r][c].isMine) {
+            gameState.board[r][c].isMine = true;
+            gameState.mines.push({ r, c });
+            minesPlaced++;
+        }
+    }
+
+    // Calculate adjacent
+    for (let r = 0; r < gameState.rows; r++) {
+        for (let c = 0; c < gameState.cols; c++) {
+            if (!gameState.board[r][c].isMine) {
+                let count = 0;
+                for (let i = -1; i <= 1; i++) {
+                    for (let j = -1; j <= 1; j++) {
+                        const nr = r + i, nc = c + j;
+                        if (nr >= 0 && nr < gameState.rows && nc >= 0 && nc < gameState.cols) {
+                            if (gameState.board[nr][nc].isMine) count++;
+                        }
+                    }
+                }
+                gameState.board[r][c].adjacentMines = count;
+            }
+        }
+    }
+
+    // Render
+    for (let r = 0; r < gameState.rows; r++) {
+        for (let c = 0; c < gameState.cols; c++) {
+            const cellEl = document.createElement('div');
+            cellEl.classList.add('cell');
+
+            cellEl.addEventListener('click', () => revealCell(r, c));
+            cellEl.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                toggleFlag(r, c);
+            });
+
+            gameState.board[r][c].element = cellEl;
+            els.boardContainer.appendChild(cellEl);
+        }
+    }
+}
+
+function revealCell(r, c) {
+    if (!gameState.isPlaying) return;
+
+    const cell = gameState.board[r][c];
+    if (cell.isRevealed || cell.isFlagged) return;
+
+    cell.isRevealed = true;
+    cell.element.classList.add('revealed');
+
+    if (cell.isMine) {
+        cell.element.classList.add('mine');
+        cell.element.textContent = '💣';
+        endGame(false, "Você clicou em uma mina!");
+        return;
+    }
+
+    gameState.cellsRevealed++;
+
+    if (cell.adjacentMines > 0) {
+        cell.element.textContent = cell.adjacentMines;
+        cell.element.dataset.adjacent = cell.adjacentMines;
+    } else {
+        // Flood fill
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                const nr = r + i, nc = c + j;
+                if (nr >= 0 && nr < gameState.rows && nc >= 0 && nc < gameState.cols) {
+                    if (!gameState.board[nr][nc].isRevealed) {
+                        revealCell(nr, nc);
+                    }
+                }
+            }
+        }
+    }
+
+    if (gameState.cellsRevealed === gameState.safeCells) {
+        endGame(true, "Você limpou o campo!");
+    }
+}
+
+function toggleFlag(r, c) {
+    if (!gameState.isPlaying) return;
+    const cell = gameState.board[r][c];
+    if (cell.isRevealed) return;
+
+    cell.isFlagged = !cell.isFlagged;
+    if (cell.isFlagged) {
+        cell.element.textContent = '🚩';
+        cell.element.classList.add('flag');
+    } else {
+        cell.element.textContent = '';
+        cell.element.classList.remove('flag');
+    }
+}
+
+// III. Lógica de Fim de Jogo e Recompensas
+function endGame(win, reason) {
+    gameState.isPlaying = false;
+    stopTimer();
+
+    // Revelar todas minas
+    gameState.mines.forEach(m => {
+        const cell = gameState.board[m.r][m.c];
+        if (!cell.isFlagged) {
+            cell.element.classList.add('revealed', 'mine');
+            cell.element.textContent = '💣';
+        }
+    });
+
+    els.gameOverlay.classList.add('active');
+    els.gameOverlay.innerHTML = '<p>Fim de jogo!</p>'; // Atualiza sem o botão apostar dnv
+
+    if (win) {
+        // Vitória = Aposta + (Aposta * Multiplicador) -> como o jogador já teve saldo deduzido, a recompensa bruta adicionada deve ser Aposta * (1 + Multiplicador), ou seguindo a formula exata: Lucro = Aposta * Multiplicador, logo ele recebe Aposta de volta + Lucro.
+        // A prompt diz: "$Lucro = Aposta \times Multiplicador$". Recebe: Aposta + Lucro.
+        const winAmount = gameState.currentBet + (gameState.currentBet * gameState.multiplier);
+        gameState.balance += winAmount;
+
+        els.modalTitle.textContent = "VITÓRIA!";
+        els.modalTitle.style.color = "var(--accent)";
+        els.modalMessage.textContent = `${reason} Você ganhou $${winAmount.toFixed(2)}!`;
+    } else {
+        els.modalTitle.textContent = "DERROTA!";
+        els.modalTitle.style.color = "var(--danger)";
+        els.modalMessage.textContent = `${reason} Você perdeu sua aposta de $${gameState.currentBet.toFixed(2)}.`;
+    }
+
+    updateBalanceDisplay();
+    checkBankruptcy();
+    els.resultModal.classList.add('active');
+}
+
+// Listeners
+els.difficultySelect.addEventListener('change', populateTimeSelect);
+
+els.startBtn.addEventListener('click', () => {
+    if (gameState.isPlaying) return;
+    startNewGame();
 });
+
+els.modalBtn.addEventListener('click', () => {
+    els.resultModal.classList.remove('active');
+    els.gameOverlay.innerHTML = '<p>Faça sua aposta para começar!</p>';
+});
+
+els.restartBtn.addEventListener('click', () => {
+    gameState.balance = 100;
+    els.gameOverModal.classList.remove('active');
+    updateBalanceDisplay();
+});
+
+// Init
+populateTimeSelect();
+updateBalanceDisplay();
+checkBankruptcy();
+updateTimerDisplay();

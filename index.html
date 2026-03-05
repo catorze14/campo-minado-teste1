@@ -1,55 +1,79 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minesweeper Premium | Campo Minado</title>
-    <meta name="description" content="Um jogo de Campo Minado moderno, responsivo e elegante feito em Vanilla JS.">
+    <title>Minesweeper Bet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="glass-container">
-        <header>
-            <h1>Campo Minado</h1>
-            <div class="game-stats">
-                <div class="stat-item" id="mine-count">
-                    <span class="icon">💣</span>
-                    <span class="value">0</span>
-                </div>
-                <div class="stat-item" id="timer">
-                    <span class="icon">⏱️</span>
-                    <span class="value">00:00</span>
-                </div>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="glass-panel">
+            <div class="header-stat">
+                <span class="label">Saldo</span>
+                <span class="value" id="balanceDisplay">$100.00</span>
+            </div>
+            <div class="header-title">
+                <h1>MINESWEEPER <span class="highlight">BET</span></h1>
+            </div>
+            <div class="header-stat">
+                <span class="label">Tempo</span>
+                <span class="value" id="timerDisplay">00:00</span>
             </div>
         </header>
 
-        <div class="controls">
-            <select id="difficulty-select">
-                <option value="easy">Iniciante (10 Minas)</option>
-                <option value="medium" selected>Intermediário (40 Minas)</option>
-                <option value="hard">Especialista (99 Minas)</option>
-            </select>
-            <button id="reset-btn">Novo Jogo</button>
+        <!-- Configuration Panel -->
+        <div class="controls glass-panel">
+            <div class="input-group">
+                <label for="difficultySelect">Dificuldade</label>
+                <select id="difficultySelect">
+                    <option value="easy">Fácil (9x9)</option>
+                    <option value="medium">Médio (16x16)</option>
+                    <option value="hard">Difícil (30x16)</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="timeSelect">Tempo & Odds</label>
+                <select id="timeSelect">
+                    <!-- Preenchido via JS -->
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="betInput">Aposta ($)</label>
+                <input type="number" id="betInput" min="1" step="1" value="10">
+            </div>
+            <button class="btn btn-primary" id="startBtn">▶ Apostar & Jogar</button>
         </div>
 
-        <main id="game-board-container">
-            <div id="game-board"></div>
+        <!-- Game Area -->
+        <main class="game-area glass-panel">
+            <div id="boardContainer" class="board-container">
+                <!-- Grid renderizado aqui -->
+            </div>
+            <!-- Overlay for unstarted state -->
+            <div id="gameOverlay" class="overlay active">
+                <p>Faça sua aposta para começar!</p>
+            </div>
         </main>
-
-        <footer>
-            <p>Clique Esquerdo: Revelar | Clique Direito: Bandeira</p>
-        </footer>
     </div>
 
-    <!-- Modal de Fim de Jogo -->
-    <div id="game-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2 id="modal-title">Fim de Jogo</h2>
-            <p id="modal-text">Você venceu!</p>
-            <button id="modal-btn">Jogar Novamente</button>
+    <!-- Result Modal -->
+    <div id="resultModal" class="modal">
+        <div class="modal-content glass-panel">
+            <h2 id="modalTitle">Resultado</h2>
+            <p id="modalMessage">Você ganhou!</p>
+            <button class="btn btn-primary" id="modalBtn">Ok</button>
+        </div>
+    </div>
+
+    <!-- Game Over Real Modal -->
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content glass-panel error">
+            <h2>FALÊNCIA!</h2>
+            <p>Seu saldo acabou e você não pode mais apostar.</p>
+            <button class="btn btn-danger" id="restartBtn">Recomeçar da Estaca Zero ($100)</button>
         </div>
     </div>
 

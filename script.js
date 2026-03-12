@@ -11,7 +11,7 @@ const gameState = {
     mines: [],
     rows: 9,
     cols: 9,
-    minesCount: 11,
+    minesCount: 8,
     cellsRevealed: 0,
     safeCells: 0,
     isPlaying: false
@@ -20,27 +20,27 @@ const gameState = {
 // Configurações
 const config = {
     easy: {
-        rows: 9, cols: 9, mines: 11,
+        rows: 9, cols: 9, mines: 8,
         options: [
-            { time: 150, mult: 1.15, label: "2:30 (1.15x)" },
-            { time: 60, mult: 1.25, label: "1:00 (1.25x)" },
-            { time: 30, mult: 1.50, label: "0:30 (1.50x)" }
-        ]
-    },
-    medium: {
-        rows: 16, cols: 16, mines: 40,
-        options: [
-            { time: 150, mult: 1.35, label: "2:30 (1.35x)" },
-            { time: 90, mult: 1.50, label: "1:30 (1.50x)" },
+            { time: 150, mult: 1.25, label: "2:30 (1.25x)" },
+            { time: 60, mult: 1.45, label: "1:00 (1.45x)" },
             { time: 45, mult: 1.75, label: "0:45 (1.75x)" }
         ]
     },
-    hard: {
-        rows: 16, cols: 30, mines: 99,
+    medium: {
+        rows: 16, cols: 16, mines: 30,
         options: [
-            { time: 180, mult: 1.50, label: "3:00 (1.50x)" },
-            { time: 135, mult: 1.75, label: "2:15 (1.75x)" },
-            { time: 90, mult: 2.00, label: "1:30 (2.00x)" }
+            { time: 150, mult: 1.50, label: "2:30 (1.50x)" },
+            { time: 90, mult: 1.80, label: "1:30 (1.80x)" },
+            { time: 60, mult: 2.20, label: "1:00 (2.20x)" }
+        ]
+    },
+    hard: {
+        rows: 16, cols: 30, mines: 70,
+        options: [
+            { time: 180, mult: 2.00, label: "3:00 (2.00x)" },
+            { time: 135, mult: 2.50, label: "2:15 (2.50x)" },
+            { time: 90, mult: 3.50, label: "1:30 (3.50x)" }
         ]
     }
 };
@@ -181,11 +181,18 @@ function setupBoard() {
         gameState.board.push(row);
     }
 
-    // Place mines (random, independent of first click right now for simplicity)
+    // Place mines (middle square and its neighbors are always safe to guarantee it's empty)
     let minesPlaced = 0;
+    const midR = Math.floor(gameState.rows / 2);
+    const midC = Math.floor(gameState.cols / 2);
+
     while (minesPlaced < gameState.minesCount) {
         const r = Math.floor(Math.random() * gameState.rows);
         const c = Math.floor(Math.random() * gameState.cols);
+
+        // Skip if r,c is in the 3x3 area around the middle square
+        if (Math.abs(r - midR) <= 1 && Math.abs(c - midC) <= 1) continue;
+
         if (!gameState.board[r][c].isMine) {
             gameState.board[r][c].isMine = true;
             gameState.mines.push({ r, c });

@@ -3,29 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minesweeper Bet</title>
+    <title>Campo Minado Bet</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body id="gameBody">
     <div class="app-container">
         <!-- Header -->
-        <header class="glass-panel">
+        <header class="glass-panel pulse-glow">
             <div class="header-stat">
                 <span class="label">Saldo</span>
-                <span class="value" id="balanceDisplay">$100.00</span>
+                <span class="value" id="balanceDisplay">💰 100.00</span>
             </div>
             <div class="header-title">
-                <h1>MINESWEEPER <span class="highlight">BET</span></h1>
+                <h1 id="gameTitle">CAMPO MINADO <span class="highlight">BET</span> 💸</h1>
             </div>
             <div class="header-stat">
                 <span class="label">Tempo</span>
-                <span class="value" id="timerDisplay">00:00</span>
+                <span class="value" id="timerDisplay">⏳ 00:00</span>
             </div>
         </header>
 
         <!-- Configuration Panel -->
-        <div class="controls glass-panel">
+        <div class="controls glass-panel" id="controlsPanel">
             <div class="input-group">
                 <label for="difficultySelect">Dificuldade</label>
                 <select id="difficultySelect">
@@ -35,16 +35,16 @@
                 </select>
             </div>
             <div class="input-group">
-                <label for="timeSelect">Tempo & Odds</label>
+                <label for="timeSelect">Tempo &amp; Odds</label>
                 <select id="timeSelect">
                     <!-- Preenchido via JS -->
                 </select>
             </div>
             <div class="input-group">
-                <label for="betInput">Aposta ($)</label>
+                <label for="betInput">Aposta (R$)</label>
                 <input type="number" id="betInput" min="1" step="1" value="10">
             </div>
-            <button class="btn btn-primary" id="startBtn">▶ Apostar & Jogar</button>
+            <button class="btn btn-primary btn-bet" id="startBtn">▶ Apostar &amp; Jogar</button>
         </div>
 
         <!-- Game Area -->
@@ -54,28 +54,70 @@
             </div>
             <!-- Overlay for unstarted state -->
             <div id="gameOverlay" class="overlay active">
-                <p>Faça sua aposta para começar!</p>
+                <p>💸 Faça sua aposta para começar! 💸</p>
             </div>
         </main>
+
+        <!-- Agiota Info Banner (shown during agiota mode) -->
+        <div id="agiotaBanner" class="agiota-banner" style="display:none;">
+            ⚠️ MODO AGIOTA — Vença para recuperar <strong id="agiotaRecoverAmt">R$ 0</strong> do seu saldo! Sem escolhas — o agiota decide!
+        </div>
     </div>
 
     <!-- Result Modal -->
     <div id="resultModal" class="modal">
-        <div class="modal-content glass-panel">
+        <div class="modal-content glass-panel" id="resultModalContent">
             <h2 id="modalTitle">Resultado</h2>
             <p id="modalMessage">Você ganhou!</p>
+            <div id="agiotaOfferContainer" style="display:none;" class="agiota-offer-box">
+                <p class="agiota-offer-text">🦈 <strong>O Agiota mandou um recado...</strong><br>
+                Você perdeu mais de R$110 no total. Quer fazer um acordo?</p>
+                <button class="btn btn-agiota" id="agiotaOfferBtn">🤝 Aceitar Proposta do Agiota</button>
+            </div>
             <button class="btn btn-primary" id="modalBtn">Ok</button>
+        </div>
+    </div>
+
+    <!-- Agiota Confirmation Modal -->
+    <div id="agiotaConfirmModal" class="modal">
+        <div class="modal-content glass-panel agiota-confirm-panel">
+            <div class="agiota-icon">🦈</div>
+            <h2 class="agiota-title">PROPOSTA DO AGIOTA</h2>
+            <div class="agiota-rules">
+                <p>⚠️ <strong>Leia com atenção antes de aceitar:</strong></p>
+                <ul>
+                    <li>🎲 O agiota escolhe aleatoriamente entre <strong>Fácil</strong> e <strong>Médio</strong></li>
+                    <li>⏱️ O tempo também é aleatório — mas justo</li>
+                    <li>🚫 Você não pode escolher dificuldade, tempo ou apostar</li>
+                    <li>✅ Se <strong>vencer</strong>: você recupera <strong>75% do seu saldo atual</strong> e volta ao jogo normal</li>
+                    <li>❌ Se <strong>perder</strong>: o saldo é zerado e você recomeça do zero com R$100</li>
+                    <li>🎨 O visual do jogo muda — você entra no território do agiota</li>
+                </ul>
+                <p class="agiota-warning">⛔ Isso é arriscado. Tem certeza que quer prosseguir?</p>
+            </div>
+            <div class="agiota-confirm-btns">
+                <button class="btn btn-agiota btn-confirm-yes" id="agiotaConfirmYes">✅ SIM, ACEITO O RISCO</button>
+                <button class="btn btn-danger btn-confirm-no" id="agiotaConfirmNo">❌ NÃO, VOLTAR</button>
+            </div>
         </div>
     </div>
 
     <!-- Game Over Real Modal -->
     <div id="gameOverModal" class="modal">
         <div class="modal-content glass-panel error">
-            <h2>FALÊNCIA!</h2>
+            <h2>FALÊNCIA! 💀</h2>
             <p>Seu saldo acabou e você não pode mais apostar.</p>
-            <button class="btn btn-danger" id="restartBtn">Recomeçar da Estaca Zero ($100)</button>
+            <button class="btn btn-danger" id="restartBtn">Recomeçar da Estaca Zero (💰 100)</button>
         </div>
     </div>
+
+    <!-- Floating Money Container -->
+    <div id="moneyContainer"></div>
+
+    <!-- Decorative Elements -->
+    <div class="roulette roulette-left">🎰</div>
+    <div class="roulette roulette-right">🎰</div>
+    <img src="colorful_poker_chips_v2_1773337633198.png" class="poker-chips" alt="Poker Chips">
 
     <script src="script.js"></script>
 </body>
